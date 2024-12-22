@@ -1,0 +1,43 @@
+// 0x6057361d0000000000000000000000000000000000000000000000000000000000000001
+#define function store(uint256) nonpayable returns()
+#define function retrieve() view returns(uint256)
+
+#define constant STORED_NUMBER_SLOT = FREE_STORAGE_POINTER()
+
+#define macro MAIN() = takes(0) returns(0) {
+    0x00  // [0] 
+    calldataload // [CALLDATA] // Everything without skipping any bytes
+    0xE0 // [CALLDATA, 0xE0] 
+    shr // [CALLDATA >> 0xE0] --> [FUNCTION_SELECTOR]
+    dup1 // [FUNCTION_SELECTOR, FUNCTION_SELECTOR]
+    __FUNC_SIG(store) // [FUNCTION_SELECTOR,FUNCTION_SELECTOR, 0x6057361d]
+    eq // [FUNCTION_SELECTOR,FUNCTION_SELECTOR == 0x6057361d]
+    store_jump // [FUNCTION_SELECTOR,1 or 0, STORE_JUMP] 
+    jumpi // [] // if the function selector is equal to the function selector of store(uint256) then jump to store_jump
+
+
+    store_jump:
+        STORE_NUMBER()
+    retrieve_jump:
+        RETRIEVE_NUMBER()
+}
+
+#define macro STORE_NUMBER() = takes(0) returns(0) {
+    0x04 // cuts the function selector and get the argument data 
+    calldataload // [ARG_DATA]
+    [STORED_NUMBER_SLOT] // [ARG_DATA,PTR]
+    sstore // []
+    stop // the function store(uint256) is called and the argument is stored in the storage and then the execution stops
+}
+
+#define macro RETRIEVE_NUMBER() = takes(0) returns(0) {
+    [STORED_NUMBER_SLOT] // [PTR]
+    sload // [VALUE]
+    
+    0x00 mstore // [VALUE,0x00]
+    
+    0x20 // [VALUE,0x00,0x20] // storing the size of the data
+    0x00 // [VALUE,0x00,0x20,0x00] // storing the offset or the start of the data which what we stored in mstore
+    return // [VALUE,0x00,0x20] // returning the data
+}
+
